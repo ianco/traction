@@ -18,4 +18,3 @@ wallet-type: 'indy'
 log-level: info
 multitenant: true
 multitenant-admin: true
-jwt-secret: 1234567

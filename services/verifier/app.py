@@ -36,7 +36,7 @@ def acapy_event_handler(topic):
 
 class Event(db.Model):
     __tablename__ = 'events'
-    __table_args__ = { "schema": 'verifier' }
+    __table_args__ = { "schema": app.config['PSQL_SCHEMA'] }
 
     id = db.Column(db.Integer,primary_key=True)
     topic = db.Column(db.String(100), nullable=False)

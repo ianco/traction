@@ -1,5 +1,43 @@
 version: "3.9"
 services:
+  traction:
+    build:
+      context: ../services/traction
+      dockerfile: Dockerfile
+    depends_on:
+      - traction-agent
+    environment:
+      - POSTGRESQL_HOST=${POSTGRESQL_HOST}
+      - POSTGRESQL_PORT=${POSTGRESQL_PORT}
+      - POSTGRESQL_DB=${TRACTION_PSQL_DB}
+      - POSTGRESQL_USER=${TRACTION_PSQL_USER}
+      - POSTGRESQL_PASSWORD=${TRACTION_PSQL_PASS}
+      - POSTGRESQL_SCHEMA=${TRACTION_PSQL_SCHEMA}
+    ports:
+      - ${TRACTION_SERVICE_PORT}:5000
+    extra_hosts:
+     - host.docker.internal:host-gateway
+    volumes:
+     - ../services/traction:/app:rw
+  holder:
+    build:
+      context: ../services/holder
+      dockerfile: Dockerfile
+    depends_on:
+      - traction-agent
+    environment:
+      - POSTGRESQL_HOST=${POSTGRESQL_HOST}
+      - POSTGRESQL_PORT=${POSTGRESQL_PORT}      
+      - POSTGRESQL_DB=${HOLDER_PSQL_DB}
+      - POSTGRESQL_USER=${HOLDER_PSQL_USER}
+      - POSTGRESQL_PASSWORD=${HOLDER_PSQL_PASS}
+      - POSTGRESQL_SCHEMA=${HOLDER_PSQL_SCHEMA}
+    ports:
+      - ${HOLDER_SERVICE_PORT}:5000
+    extra_hosts:
+     - host.docker.internal:host-gateway
+    volumes:
+    - ../services/holder:/app:rw
   verifier:
     build:
       context: ../services/verifier
@@ -12,6 +50,7 @@ services:
       - POSTGRESQL_DB=${VERIFIER_PSQL_DB}
       - POSTGRESQL_USER=${VERIFIER_PSQL_USER}
       - POSTGRESQL_PASSWORD=${VERIFIER_PSQL_PASS}
+      - POSTGRESQL_SCHEMA=${VERIFIER_PSQL_SCHEMA}
     ports:
       - ${VERIFIER_SERVICE_PORT}:5000
     extra_hosts:
@@ -30,6 +69,7 @@ services:
       - POSTGRESQL_DB=${HOLDER_PSQL_DB}
       - POSTGRESQL_USER=${HOLDER_PSQL_USER}
       - POSTGRESQL_PASSWORD=${HOLDER_PSQL_PASS}
+      - POSTGRESQL_SCHEMA=${HOLDER_PSQL_SCHEMA}
     ports:
       - ${HOLDER_SERVICE_PORT}:5000
     extra_hosts:
@@ -51,8 +91,6 @@ services:
         --auto-provision
         --arg-file acapy-static-args.yml \
         --inbound-transport http '0.0.0.0' ${ACAPY_HTTP_PORT} \
-        --webhook-url http://verifier:5000/log \
-        --webhook-url http://holder:5000/log \
         --genesis-url '${ACAPY_GENESIS_URL}' \
         --endpoint ${ACAPY_ENDPOINT} \
         --wallet-name '${ACAPY_WALLET_DATABASE}' \
@@ -62,7 +100,9 @@ services:
         --wallet-storage-creds '{\"account\":\"${POSTGRESQL_USER}\",\"password\":\"${POSTGRESQL_PASSWORD}\",\"admin_account\":\"${POSTGRESQL_USER}\",\"admin_password\":\"${POSTGRESQL_PASSWORD}\"}' \
         --wallet-name traction-wallet  \
         --admin '0.0.0.0' ${ACAPY_ADMIN_PORT} \
+        --emit-new-didcomm-prefix \
         --label '${AGENT_NAME}' \
+        --jwt-secret '${JWT_SECRET}' \
         ${ACAPY_ADMIN_CONFIG} \
         ${ACAPY_READ_ONLY_MODE} \
         ${ACAPY_TAILS_BASE_URL} \       
@@ -82,5 +122,6 @@ services:
       - ${POSTGRESQL_PORT}:5432
     volumes:
       - traction-wallet:/var/lib/postgresql/data
+      - ./db_init.sql:/docker-entrypoint-initdb.d/1-init.sql
 volumes:
   traction-wallet:
